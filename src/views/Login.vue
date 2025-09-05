@@ -10,7 +10,7 @@
         <v-text-field
           v-model="email"
           label="E-mail"
-          type="email"
+          type="user"
           required
         />
         <v-text-field
@@ -19,6 +19,7 @@
           type="password"
           required
         />
+        <router-link to="/recuperar-senha" class="forgot-password">Esqueci minha senha</router-link>
         <v-btn type="submit" color="primary" block>Entrar</v-btn>
       </v-form>
     </v-card>
@@ -41,3 +42,11 @@ function login() {
   }
 }
 </script>
+
+<style scuped>
+.forgot-password {
+  color: rgb(0, 42, 255); 
+  display: flex;
+  margin-bottom: 20px;
+}
+</style>
