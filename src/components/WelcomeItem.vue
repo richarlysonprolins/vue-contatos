@@ -21,7 +21,6 @@
 
 .details {
   flex: 1;
-  margin-left: 1rem;
 }
 
 i {

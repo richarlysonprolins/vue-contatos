@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import Login from '../views/Login.vue'
 import Contatos from '../views/Contatos.vue'
 import CriarContato from '../views/CriarContato.vue'
+import RecuperarSenha from '../views/RecuperarSenha.vue'
 
 
 const router = createRouter({
@@ -26,6 +27,11 @@ const router = createRouter({
       path: '/contatos',
       name: 'Contatos',
       component: Contatos
+    },
+    {
+      path: '/recuperar-senha',
+      name: 'RecuperarSenha',
+      component: RecuperarSenha
     },
     {
       path: '/',
