@@ -7,7 +7,6 @@ import { RouterView } from 'vue-router'
 </template>
 
 <style>
-/* Se quiser fundo padrão para toda a aplicação */
 html, body, #app {
   height: 100dvh !important;
   width: 100dvw !important;
