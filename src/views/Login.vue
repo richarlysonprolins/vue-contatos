@@ -1,6 +1,6 @@
 <template>
   <v-container class="container123 d-flex align-center justify-center">
-    <v-card width="400" class="pa-6">
+    <v-card color="black" width="400" class="pa-6">
       <div class="d-flex flex-column align-center mb-4">
         <img alt="Vue logo" class="logo" src="@/assets/NewLogoProlins.png" width="100%" height="100%" />
         <h2 class="text-h6">Bem-vindo(a)</h2>
@@ -10,7 +10,7 @@
         <v-text-field
           v-model="email"
           label="E-mail"
-          type="user"
+          type="email"
           required
         />
         <v-text-field
