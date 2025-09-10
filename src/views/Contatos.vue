@@ -43,14 +43,14 @@
                           </template>
                       </v-list-item>
                       </v-list> -->
-                  <v-dialog v-model="dialog">
+                  <v-dialog v-model="dialog" max-width="600">
                     <template v-slot:activator="{ props: activatorProps }">
                       <v-btn
                         v-bind="activatorProps"
                         color="primary"
-                        text="Criar Contato"
+                        text
                         variant="flat"
-                      ></v-btn>
+                      >Criar Contato</v-btn>
                     </template>
 
                     <template v-slot:default="{ isActive }">
@@ -58,7 +58,7 @@
                         <v-card-text>
                           <v-row dense>
                             <v-col v-for="(field,i) in formFields" :key="i" cols="12" md="4" sm="6">
-                              <v-text-field v-model="field.model" :label="field.label" :type="field.type" :required="field.required || false"> </v-text-field> 
+                              <v-text-field v-model="field.model" :label="field.label" :type="field.type" :required="field.required || false" @blur="field.key === 'cep' ? buscarCep() : null"> </v-text-field> 
                             </v-col>
                           </v-row>
                           <p class="text-caption-red text-red123 text-medium-emphasis">*Indica campo obrigatório</p>
@@ -71,94 +71,127 @@
 
                           <v-btn
                             color="red"
-                            text="Cancelar"
+                            text
                             @click="dialog = false"
-                          ></v-btn>
+                          >Cancelar</v-btn>
 
                           <v-btn
                             color="primary"
-                            text="Salvar"
+                            text
                             @click="salvarContato"
-                          ></v-btn>
+                          >Salvar</v-btn>
                         </v-card-actions>
                       </v-card>
                     </template>
                   </v-dialog>   
-                <v-data-table v-slot:item.actions="{ item }" :headers="headers" :items="contatos">
+                <v-data-table v-slot:item.actions="{ item }" :headers="headers" :items="contatos" item-key="id">
+                  
                   <ContatosForm
                       v-model="openModal"
                       :contato="contatoSelecionado"
-                      @salvar="salvarContato"
+                      @click="salvarContato"
                   />
                 </v-data-table>
               </v-card>
-              
           </v-container>
       </template>
 
       <script setup>
-      import { ref } from 'vue' 
+      import { onMounted, ref } from 'vue' 
       import ContatosForm from '../components/ContatosForm.vue'
       import { useRouter } from 'vue-router' 
+      import { fetchAddressByCep } from "../services/viacep.js"
+      const contatoSelecionado = ref(null)
 
       const formFields = ref([
-        { label: "Nome", type:"text", model: ref(""), required: true},
-        { label: "E-mail", type:"text", model: ref(""), required: true},
-        { label: "Telefone", type:"text", model: ref(""), required: true},
-        { label: "CEP", type:"text", model: ref(""), required: true},
-        { label: "Logradouro", type:"text", model: ref(""), required: true},
-        { label: "Número", type:"number", model: ref(""), required: true},
-        { label: "Bairro", type:"text", model: ref(""), required: true},
-        { label: "Cidade", type:"text", model: ref(""), required: true},
-        { label: "Estado", type:"text", model: ref(""), required: true}
+        { label: "Nome", key: "nome", type:"text", model: ref(""), required: true},
+        { label: "E-mail", key: "email", type:"text", model: ref(""), required: true},
+        { label: "Telefone", key: "telefone", type:"text", model: ref(""), required: true},
+        { label: "CEP", key: "cep", type:"text", model: ref(""), required: true},
+        { label: "Logradouro", key: "logradouro", type:"text", model: ref(""), required: true},
+        { label: "Número", key: "numero", type:"number", model: ref(""), required: true},
+        { label: "Bairro", key: "bairro", type:"text", model: ref(""), required: true},
+        { label: "Cidade", key: "cidade", type:"text", model: ref(""), required: true},
+        { label: "Estado", key: "estado", type:"text", model: ref(""), required: true}
       ])
+
+      async function buscarCep() {
+      const cepField = formFields.value.find(f => f.key === "cep")
+      const cep = cepField.model 
+
+      if (!cep || cep.replace(/\D/g, '').length !== 8) {
+        alert('CEP inválido. Deve ter 8 dígitos.')
+        return
+      }
+      
+      const endereco = await fetchAddressByCep(cep)
+      
+      if (endereco) {
+        formFields.value.find(f => f.key === "logradouro").model = endereco.logradouro
+        formFields.value.find(f => f.key === "bairro").model = endereco.bairro
+        formFields.value.find(f => f.key === "cidade").model = endereco.cidade
+        formFields.value.find(f => f.key === "estado").model = endereco.estado
+      } else {
+        alert('CEP não encontrado ou erro na consulta')
+      }
+    }
 
       const headers = ([
-        { title: "Nome", key:"nome"},
-        { title: "E-mail", key:"email"},
-        { title: "Telefone", key:"telefone"},
-        { title: "CEP", key:"cep"},
-        { title: "Logradouro", key:"logradouro"},
-        { title: "Número", key:"numero"},
-        { title: "Bairro", key:"bairro"},
-        { title: "Cidade", key:"cidade"},
-        { title: "Estado", key:"estado"},
-        { title: "Ações", key:"actions", sortable: false},
+        { text: "Nome", value: "nome" },
+        { text: "E-mail", value: "email" },
+        { text: "Telefone", value: "telefone" },
+        { text: "CEP", value: "cep" },
+        { text: "Logradouro", value: "logradouro" },
+        { text: "Número", value: "numero" },
+        { text: "Bairro", value: "bairro" },
+        { text: "Cidade", value: "cidade" },
+        { text: "Estado", value: "estado" },
+        { text: "Ações", value: "actions", sortable: false }
       ])
 
-      const contatos = ([
-        { id: 1, nome: "Chameblo", email:"vinicius13@prolins.com.br", telefone:"(85) 94002-8922", cep:"60821-075", logradouro:"Av. Rogaciano Leite", numero:"2285", bairro:"Luciano Cavalcante", cidade:"Fortaleza", estado:"Ceará", acoes:""},
-        { id: 2, nome: "Nome", email:"nome", telefone:"bdjajksa", cep:"bdjajksa", logradouro:"bdjajksa", numero:"bdjajksa", bairro:"bdjajksa", cidade:"bdjajksa", estado:"bdjajksa", acoes:"bdjajksa"},
-        { id: 3, nome: "Nome", email:"nome", telefone:"bdjajksa", cep:"bdjajksa", logradouro:"bdjajksa", numero:"bdjajksa", bairro:"bdjajksa", cidade:"bdjajksa", estado:"bdjajksa", acoes:"bdjajksa"}
-      ])
+      const contatos = ref([])
 
-      const nome = ref('')
-      const cep = ref('')
-      const router = useRouter()
+      async function carregarContatos(){
+        try {
+          const resposta = await fetch("/api/listar_contatos.php")
+          const dados = await resposta.json()
+          contatos.value = dados
+        } catch (e) {
+          console.log("Deu ruim menó", e)
+        }
+      }
+
+      onMounted(() => {
+        carregarContatos()
+      })
 
       const dialog = ref(false)
 
       async function salvarContato(){
          const novoContato = {}
             formFields.value.forEach(field => {
-            novoContato[field.label.toLowerCase()] = field.model.value
+            novoContato[field.key.toLowerCase()] = field.model
           })
         try {
-          const resposta = await fetch("https://localhost/vue-contatos/api/criar_contato.php", {
+          const resposta = await fetch("/api/criar_contato.php", {
             method: "POST",
             headers: {
               "Content-Type": "application/json"
             }, 
             body: JSON.stringify(novoContato)
           })
+           const texto = await resposta.text()
+          console.log("Resposta bruta do PHP:", texto)
 
-          const resultado = await resposta.json()
+          const resultado = JSON.parse(texto)
+          console.log("JSON parseado:", resultado)
 
           if (resultado.status === "ok") {
             alert("Contato criado com sucesso! ID: " + resultado.id)
               formFields.value.forEach(field => {
               field.model.value = ''
           })
+          dialog.value = false
         } else {
             alert("Erro ao salvar contato!")
           }
@@ -166,18 +199,6 @@
           console.error("Erro na requisição:", e)
         }
       }
-
-      
-
-      function AbrirCriar() {
-        contatoSelecionado.value = null
-        openModal.value = true
-      }
-      function abrirEditar() {
-        contatoSelecionado.value = {...item}
-        openModal.value = true
-      }
-
       
 
       </script>
@@ -186,6 +207,6 @@
       .text-red123 {
         color: red !important;
       }
-    </style>
+      </style>
 
 
