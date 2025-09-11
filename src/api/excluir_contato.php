@@ -24,11 +24,11 @@ $stmt->bind_param("i",
 
 if ($stmt->execute()) {
     echo json_encode([
-        "status" => "ok",
+        "success" => true,
     ]);
 } else {
     echo json_encode([
-        "status" => "erro",
+        "success" => false,
         "mensagem" => $stmt->error
     ]);
 }

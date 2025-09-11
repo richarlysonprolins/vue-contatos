@@ -16,7 +16,7 @@
                       <v-card-text>
                         <v-row dense>
                           <v-col v-for="(field,i) in formFields" :key="i" cols="12" md="4" sm="6">
-                             <v-text-field v-model="field.model" :label="field.label" :type="field.type" :required="field.required || false" @blur="field.key === 'cep' ? buscarCep() : null" />
+                             <v-text-field v-model="field.model" :label="field.label" :type="field.type" :rules="field.rules || []" :required="field.required" @blur="field.key === 'cep' ? buscarCep() : null" />
                           </v-col>
                         </v-row>
                         <small class="text-caption text-red123 text-medium-emphasis">*Indica campo obrigatório</small>
@@ -48,36 +48,63 @@
                           persistent
                         >
                           <template v-slot:activator="{ props: activatorProps }">
-                            <v-btn color="red" v-bind="activatorProps">
+                            <v-btn color="red" v-bind="activatorProps" @click="abrirDialogDeletar">
                               <v-icon>mdi-delete</v-icon>
                             </v-btn>
                           </template>
 
-                          <v-card
-                            prepend-icon="mdi-map-marker"
-                            text="Ao clicar em confirmar, você deleta o usuário"
-                            title="Tem certeza que quer deletar usuário?"
-                          >
-                            <template v-slot:actions>
-                              <v-spacer></v-spacer>
+                          <v-card>
+                            <v-card-title class="d-flex align-center">
+                                <v-icon icon="mdi-alert" color="error" class="mr-2"></v-icon>
+                                Confirmar exclusão
+                            </v-card-title>
+                            
+                            <v-card-text>
+                                <p>Tem certeza que deseja excluir o contato <strong>{{ contatoParaExcluir?.nome }}</strong>?</p>
+                                <p class="text-caption text-medium-emphasis mt-2">
+                                    Ao clicar em confirmar, este contato será permanentemente removido.
+                                </p>
+                            </v-card-text>
 
-                              <v-btn @click="dialogDeletar = false">
-                                Cancelar
-                              </v-btn>
-
-                              <v-btn @click="confirmarExclusao">
-                                Confirmar
-                              </v-btn>
-                            </template>
-                          </v-card>
+                            <v-card-actions>
+                                <v-spacer></v-spacer>
+                                <v-btn 
+                                    color="grey" 
+                                    variant="text" 
+                                    @click="dialogDeletar = false"
+                                >
+                                    Cancelar
+                                </v-btn>
+                                <v-btn 
+                                    color="error" 
+                                    variant="flat" 
+                                    @click="confirmarExclusao"
+                                >
+                                    Confirmar
+                                </v-btn>
+                            </v-card-actions>
+                        </v-card>
                         </v-dialog>  
             </v-card>
         </v-container>
     </template>
 
     <script setup>
-    import { ref } from 'vue' 
+    import { ref, watch } from 'vue' 
     import { fetchAddressByCep } from "../services/viacep.js"
+    const contatoParaExcluir = ref(null)
+    
+    const props = defineProps({
+      contato: {
+        type: Object,
+        required: true
+      }
+    })
+
+    const emit = defineEmits(["atualizado"])
+    const dialog = ref(false)
+    const dialogEditar = ref(false)
+    const dialogDeletar = ref(false)
     const contatoSelecionado = ref(null)
 
     async function buscarCep() {
@@ -101,28 +128,55 @@
       }
     }
 
+    const validationRules = {
+      required: value => {
+        if (value && value.toString().trim()) return true
+        return 'Este campo é obrigatório'
+      },
+      email: value => {
+        const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        return pattern.test(value) || 'E-mail inválido'
+      },
+      cep: value => {
+        const cleaned = value.replace(/\D/g, '')
+        return cleaned.length === 8 || 'CEP deve ter 8 dígitos'
+      }
+    }
+
+    // Atualize o formFields com regras específicas
     const formFields = ref([
-      { label: "Nome", key:"nome", type:"text", model: ref(""), required: true},
-      { label: "E-mail", key:"email", type:"text", model: ref(""), required: true},
-      { label: "Telefone", key:"telefone", type:"text", model: ref(""), required: true},
-      { label: "CEP", key:"cep", type:"text", model: ref(""), required: true},
-      { label: "Logradouro", key:"logradouro", type:"text", model: ref(""), required: true},
-      { label: "Número", key:"numero", type:"number", model: ref(""), required: true},
-      { label: "Bairro", key:"bairro", type:"text", model: ref(""), required: true},
-      { label: "Cidade", key:"cidade", type:"text", model: ref(""), required: true},
-      { label: "Estado", key:"estado", type:"text", model: ref(""), required: true}
+      { label: "Nome", key:"nome", type:"text", model: "", required: true, rules: [validationRules.required] },
+      { label: "E-mail", key:"email", type:"text", model: "", required: true, rules: [validationRules.required, validationRules.email] },
+      { label: "Telefone", key:"telefone", type:"text", model: "", required: true, rules: [validationRules.required] },
+      { label: "CEP", key:"cep", type:"text", model: "", required: true, rules: [validationRules.required, validationRules.cep] },
+      { label: "Logradouro", key:"logradouro", type:"text", model: "", required: true, rules: [validationRules.required] },
+      { label: "Número", key:"numero", type:"number", model: "", required: true, rules: [validationRules.required] },
+      { label: "Bairro", key:"bairro", type:"text", model: "", required: true, rules: [validationRules.required] },
+      { label: "Cidade", key:"cidade", type:"text", model: "", required: true, rules: [validationRules.required] },
+      { label: "Estado", key:"estado", type:"text", model: "", required: true, rules: [validationRules.required] }
     ])
 
-    const dialog = ref(false)
-    const dialogEditar = ref(false)
-    const dialogDeletar = ref(false)
+    watch(() => props.contato, (novo) => {
+      if (novo) {
+        formFields.value.forEach(field => {
+          field.model = novo[field.key] || ""
+        })
+      }
+    }, { immediate: true })
 
     async function salvarContato() {
+      const camposInvalidos = formFields.value.filter(f => f.required && !f.model.trim())
+
+      if (camposInvalidos.length > 0) {
+        alert(`Preencha os campos obrigatórios: ${camposInvalidos.map(f => f.label).join(", ")}`)
+        return
+      }
+
       const payload = {}
       formFields.value.forEach(field => {
         payload[field.key] = field.model
       }) 
-      payload.id = contatoSelecionado.value.id
+      payload.id = props.contato.id
 
       try {
         const res = await fetch("/api/editar_contato.php", {
@@ -131,10 +185,12 @@
           body: JSON.stringify(payload)
         })
         const data = await res.json()
-        if (data.success) {
+        if (data.status === "ok") {
           alert("Contato atualizado com sucesso!")
           dialogEditar.value = false
-          carregarContatos()
+          emit("atualizado")
+        } else {
+          alert("Erro ao salvar: " + (data.mensagem || "desconhecido"))
         }
         } catch (e) {
           console.error("Erro ao editar:", e)
@@ -142,20 +198,28 @@
       }
 
       async function confirmarExclusao() {
+        if (!props.contato || !props.contato.id) {
+        alert("Erro: Contato não selecionado para exclusão")
+        dialogDeletar.value = false
+        return
+        }
         try {
           const res = await fetch("/api/excluir_contato.php", {
             method: "POST",
             headers: { "Content-Type" : "application/json" },
-            body: JSON.stringify({ id: contatoSelecionado.value.id })
+            body: JSON.stringify({ id: props.contato.id })
           })
           const data = await res.json()
           if (data.success) {
-            alert("Contato deletado com sucesso!")
+            alert(`Contato "${props.contato.nome}" deletado com sucesso!"`)
             dialogDeletar.value = false
-            carregarContatos()
-          }
+            emit("atualizado")
+          } else {
+            alert("Erro ao deletar contato: " + (data.mensagem || "desconhecido"))
+        }
         } catch (e) {
-          console.log("Erro ao editar:", e)
+          console.log("Erro ao excluir:", e)
+          alert("Erro ao excluir contato. Tente novamente.")
         }
         
       }
@@ -166,6 +230,11 @@
           field.model = item[field.key] || ""
         })
         dialogEditar.value = true
+      }
+
+      function abrirDialogDeletar() {
+        contatoParaExcluir.value = props.contato
+        dialogDeletar.value = true
       }
 
     </script>

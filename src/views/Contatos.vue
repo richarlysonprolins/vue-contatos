@@ -58,7 +58,7 @@
                         <v-card-text>
                           <v-row dense>
                             <v-col v-for="(field,i) in formFields" :key="i" cols="12" md="4" sm="6">
-                              <v-text-field v-model="field.model" :label="field.label" :type="field.type" :required="field.required || false" @blur="field.key === 'cep' ? buscarCep() : null"> </v-text-field> 
+                              <v-text-field v-model="field.model" :label="field.label" :type="field.type" :rules="field.rules || []" :required="field.required" @blur="field.key === 'cep' ? buscarCep() : null"> </v-text-field> 
                             </v-col>
                           </v-row>
                           <p class="text-caption-red text-red123 text-medium-emphasis">*Indica campo obrigatório</p>
@@ -84,13 +84,13 @@
                       </v-card>
                     </template>
                   </v-dialog>   
-                <v-data-table v-slot:item.actions="{ item }" :headers="headers" :items="contatos" item-key="id">
-                  
+                <v-data-table :headers="headers" :items="contatos" item-key="id">
+                  <template v-slot:item.actions="{ item }">
                   <ContatosForm
-                      v-model="openModal"
-                      :contato="contatoSelecionado"
-                      @click="salvarContato"
+                      :contato="item"
+                      @atualizado="carregarContatos"
                   />
+                  </template>
                 </v-data-table>
               </v-card>
           </v-container>
@@ -103,16 +103,32 @@
       import { fetchAddressByCep } from "../services/viacep.js"
       const contatoSelecionado = ref(null)
 
+      const validationRules = {
+        required: value => {
+          if (value && value.toString().trim()) return true
+          return 'Este campo é obrigatório'
+        },
+        email: value => {
+          const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+          return pattern.test(value) || 'E-mail inválido'
+        },
+        cep: value => {
+          const cleaned = value.replace(/\D/g, '')
+          return cleaned.length === 8 || 'CEP deve ter 8 dígitos'
+        }
+      }
+
+      // Atualize o formFields com regras específicas
       const formFields = ref([
-        { label: "Nome", key: "nome", type:"text", model: ref(""), required: true},
-        { label: "E-mail", key: "email", type:"text", model: ref(""), required: true},
-        { label: "Telefone", key: "telefone", type:"text", model: ref(""), required: true},
-        { label: "CEP", key: "cep", type:"text", model: ref(""), required: true},
-        { label: "Logradouro", key: "logradouro", type:"text", model: ref(""), required: true},
-        { label: "Número", key: "numero", type:"number", model: ref(""), required: true},
-        { label: "Bairro", key: "bairro", type:"text", model: ref(""), required: true},
-        { label: "Cidade", key: "cidade", type:"text", model: ref(""), required: true},
-        { label: "Estado", key: "estado", type:"text", model: ref(""), required: true}
+        { label: "Nome", key:"nome", type:"text", model: "", required: true, rules: [validationRules.required] },
+        { label: "E-mail", key:"email", type:"text", model: "", required: true, rules: [validationRules.required, validationRules.email] },
+        { label: "Telefone", key:"telefone", type:"text", model: "", required: true, rules: [validationRules.required] },
+        { label: "CEP", key:"cep", type:"text", model: "", required: true, rules: [validationRules.required, validationRules.cep] },
+        { label: "Logradouro", key:"logradouro", type:"text", model: "", required: true, rules: [validationRules.required] },
+        { label: "Número", key:"numero", type:"number", model: "", required: true, rules: [validationRules.required] },
+        { label: "Bairro", key:"bairro", type:"text", model: "", required: true, rules: [validationRules.required] },
+        { label: "Cidade", key:"cidade", type:"text", model: "", required: true, rules: [validationRules.required] },
+        { label: "Estado", key:"estado", type:"text", model: "", required: true, rules: [validationRules.required] }
       ])
 
       async function buscarCep() {
@@ -168,6 +184,13 @@
       const dialog = ref(false)
 
       async function salvarContato(){
+          const camposInvalidos = formFields.value.filter(f => f.required && !f.model.trim())
+
+          if (camposInvalidos.length > 0) {
+            alert(`Preencha os campos obrigatórios: ${camposInvalidos.map(f => f.label).join(", ")}`)
+            return
+          }
+
          const novoContato = {}
             formFields.value.forEach(field => {
             novoContato[field.key.toLowerCase()] = field.model
@@ -189,7 +212,7 @@
           if (resultado.status === "ok") {
             alert("Contato criado com sucesso! ID: " + resultado.id)
               formFields.value.forEach(field => {
-              field.model.value = ''
+              field.model = ''
           })
           dialog.value = false
         } else {

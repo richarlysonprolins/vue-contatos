@@ -4,7 +4,8 @@ import Login from '../views/Login.vue'
 import Contatos from '../views/Contatos.vue'
 import CriarContato from '../views/CriarContato.vue'
 import RecuperarSenha from '../views/RecuperarSenha.vue'
-
+import Token from '../views/Token.vue'
+import { requireAuth } from '../middleware/auth.js'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,6 +20,11 @@ const router = createRouter({
       component: Login
     },
     {
+      path: '/token',
+      name: 'Token',
+      component: Token
+    },
+    {
       path: '/criarcontato',
       name: 'CriarContato',
       component: CriarContato
@@ -26,7 +32,8 @@ const router = createRouter({
     {
       path: '/contatos',
       name: 'Contatos',
-      component: Contatos
+      component: Contatos,
+      beforeEnter: requireAuth
     },
     {
       path: '/recuperar-senha',

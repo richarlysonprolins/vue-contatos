@@ -22,6 +22,10 @@
         <router-link to="/recuperar-senha" class="forgot-password">Esqueci minha senha</router-link>
         <v-btn type="submit" color="primary" block>Entrar</v-btn>
       </v-form>
+
+      <v-alert v-if="errorMessage" type="error" class="mt-3">
+        {{ errorMessage }}
+      </v-alert>
     </v-card>
   </v-container>
 </template>
@@ -29,16 +33,59 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-
+const loading = ref(false)
+const errorMessage = ref('')
 const email = ref('')
 const password = ref('')
 const router = useRouter()
 
-function login() {
-  if (email.value && password.value) {
-    router.push('/contatos')
-  } else {
-    alert('Preencha todos os campos!')
+async function login() {
+  if (!email.value || !password.value) {
+    errorMessage.value = 'Preencha todos os campos!'
+    return
+  }
+
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    // Use URL relativa para evitar CORS
+    const response = await fetch('/api/valida_login.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email.value,
+        password: password.value
+      })
+    })
+
+    console.log('Status da resposta:', response.status)
+    
+    if (!response.ok) {
+      throw new Error(`Erro do servidor: ${response.status}`)
+    }
+
+    const data = await response.json()
+    console.log('Dados recebidos:', data)
+
+    if (data.success) {
+      if (data.token) {
+        localStorage.setItem('authToken', data.token)
+      }
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user))
+      }
+      router.push('/contatos')
+    } else {
+      errorMessage.value = data.message || 'Erro ao fazer login'
+    }
+  } catch (error) {
+    console.error('Erro completo:', error)
+    errorMessage.value = 'Erro de conexão. Verifique se o servidor PHP está rodando.'
+  } finally {
+    loading.value = false
   }
 }
 </script>

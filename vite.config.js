@@ -19,7 +19,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost/vue-contatos/src/', // backend PHP (Apache)
+        target: 'http://localhost/projeto_vue/vue-contatos/src/', // backend PHP (Apache)
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, 'api')
       }

@@ -1,5 +1,4 @@
 <template>
-    
     <v-container fluid class="fill-height d-flex align-center justify-center">
         <v-card width="400" class="pa-6">
             <v-form @submit.prevent="cadastro">
